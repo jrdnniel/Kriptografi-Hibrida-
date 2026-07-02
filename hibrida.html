@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kriptografi Hibrida + Steganografi</title>
+<style>
+  :root{
+    --ink:#0f1720;
+    --paper:#eef1f6;
+    --panel:#ffffff;
+    --line:#d7dce4;
+    --accent:#1c3f8c;
+    --accent-2:#8c2f2f;
+    --mono: 'JetBrains Mono','Consolas',monospace;
+    --sans: 'Inter','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+  }
+  header{
+    background:var(--ink);
+    color:#fff;
+    padding:28px 32px 22px;
+    border-bottom:4px solid var(--accent);
+  }
+  header .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#9fb2d8;
+    margin-bottom:6px;
+  }
+  header h1{
+    margin:0;
+    font-size:28px;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  header p{
+    margin:8px 0 0;
+    color:#c3cde0;
+    max-width:760px;
+    font-size:14px;
+  }
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 24px 60px;
+  }
+  .pipeline{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin:18px 0 28px;
+    font-family:var(--mono);
+    font-size:11.5px;
+  }
+  .pipeline span{
+    background:#fff;
+    border:1px solid var(--line);
+    padding:5px 10px;
+    border-radius:3px;
+    color:#3a4a63;
+  }
+  .pipeline span b{color:var(--accent)}
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:20px 22px;
+  }
+  .panel h2{
+    font-size:15px;
+    margin:0 0 4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2 .num{
+    font-family:var(--mono);
+    background:var(--accent);
+    color:#fff;
+    width:22px;height:22px;
+    display:inline-flex;align-items:center;justify-content:center;
+    border-radius:3px;
+    font-size:12px;
+  }
+  .panel .desc{
+    font-size:12.5px;
+    color:#5b6b82;
+    margin:0 0 16px;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:#3a4a63;
+    margin:14px 0 6px;
+  }
+  label:first-of-type{margin-top:0}
+  textarea, input[type=text], input[type=number]{
+    width:100%;
+    font-family:var(--sans);
+    font-size:13.5px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:#fbfcfe;
+    color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:70px}
+  input[type=file]{
+    width:100%;
+    font-size:12.5px;
+    padding:8px;
+    border:1px dashed var(--line);
+    border-radius:4px;
+    background:#fbfcfe;
+  }
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  button{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:13.5px;
+    padding:10px 16px;
+    border-radius:4px;
+    border:1px solid var(--accent);
+    background:var(--accent);
+    color:#fff;
+    cursor:pointer;
+    margin-top:16px;
+  }
+  button:hover{filter:brightness(1.08)}
+  button.secondary{
+    background:#fff;
+    color:var(--accent);
+  }
+  button:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+  }
+  .thumb{
+    margin-top:12px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    max-width:100%;
+    display:block;
+  }
+  a.download{
+    display:inline-block;
+    margin-top:10px;
+    font-size:12.5px;
+    font-family:var(--mono);
+    color:var(--accent);
+    text-decoration:none;
+    border-bottom:1px solid var(--accent);
+  }
+  .log{
+    grid-column:1/-1;
+    background:#0f1720;
+    color:#c9d4e3;
+    font-family:var(--mono);
+    font-size:12px;
+    padding:16px 18px;
+    border-radius:6px;
+    max-height:340px;
+    overflow-y:auto;
+    white-space:pre-wrap;
+    line-height:1.6;
+  }
+  .log .ok{color:#7fd68a}
+  .log .warn{color:#e0a34b}
+  .log .err{color:#e07070}
+  .log .tag{color:#6fa8dc}
+  .result{
+    grid-column:1/-1;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:20px 22px;
+  }
+  .result h2{margin:0 0 10px;font-size:15px}
+  .result .msg{
+    font-family:var(--mono);
+    font-size:14px;
+    background:#f4f6fa;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:14px;
+    white-space:pre-wrap;
+  }
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:3px;
+    margin-left:8px;
+  }
+  .badge.valid{background:#dff3e0;color:#227a33}
+  .badge.invalid{background:#fbe0e0;color:#a02929}
+  footer{
+    text-align:center;
+    font-size:11.5px;
+    color:#8393aa;
+    padding:20px;
+    font-family:var(--mono);
+  }
+  .note{
+    font-size:11.5px;
+    color:#8393aa;
+    margin-top:14px;
+    border-top:1px dashed var(--line);
+    padding-top:10px;
+  }
+  .note.warn2{
+    color:#a06a1c;
+    border-top:1px dashed #e0c090;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Latihan Kriptografi Hibrida + Steganografi</div>
+  <h1>Sistem Pengamanan Pesan Hibrida</h1>
+</header>
+
+<div class="wrap">
+
+  <div class="pipeline">
+    <span><b>1.</b> Diffie-Hellman (ECDH)</span>
+    <span><b>2.</b> SHA-256 (KDF)</span>
+    <span><b>3.</b> AES-256-GCM</span>
+    <span><b>4.</b> RSA-OAEP (bungkus kunci)</span>
+    <span><b>5.</b> ECDSA (tanda tangan)</span>
+    <span><b>6.</b> LSB Termodifikasi (steganografi)</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- ENCRYPT / EMBED PANEL -->
+    <div class="panel">
+      <h2><span class="num">A</span> Kirim Pesan Aman (Enkripsi + Sisip)</h2>
+      <p class="desc">Generate kunci, enkripsi pesan, lalu sisipkan seluruh paket (termasuk kunci yang dibutuhkan penerima) ke dalam gambar cover.</p>
+
+      <label>Pesan rahasia</label>
+      <textarea id="plaintext">Ini adalah pesan rahasia untuk tugas Kriptografi Hibrida!</textarea>
+
+      <label>Gambar cover (PNG disarankan)</label>
+      <input type="file" id="coverImage" accept="image/*">
+      <img id="coverPreview" class="thumb" style="display:none">
+
+      <label>Seed steganografi (kunci acak posisi bit)</label>
+      <input type="number" id="seedInput" value="123456">
+
+      <button id="btnEncrypt">🔒 Enkripsi &amp; Sisipkan ke Gambar</button>
+
+      <div id="stegoResultBox" style="display:none">
+        <label>Gambar hasil (stego image)</label>
+        <img id="stegoPreview" class="thumb">
+        <a id="downloadLink" class="download" download="stego_output.png">⬇ Unduh stego_output.png</a>
+      </div>
+      <p class="note">Catatan: ECDH &amp; ECDSA dipakai sebagai padanan Diffie-Hellman dan DSA/Schnorr karena Web Crypto API browser hanya menyediakan varian kurva eliptik secara native, bukan modular klasik.</p>
+      <p class="note warn2">⚠ Untuk kebutuhan demo mandiri (gambar bisa dibuka di luar sesi ini), kunci privat RSA & kunci publik ECDSA ikut disisipkan ke dalam gambar. Ini <b>bukan praktik aman</b> untuk sistem produksi nyata — di dunia nyata kunci privat tidak pernah dikirim bersama pesannya. Di sini "kunci bersama"-nya cuma nilai seed.</p>
+    </div>
+
+    <!-- DECRYPT / EXTRACT PANEL -->
+    <div class="panel">
+      <h2><span class="num">B</span> Terima Pesan Aman (Ekstrak + Dekripsi)</h2>
+      <p class="desc">Ambil gambar stego (dari panel A, atau dari luar/pihak lain), verifikasi tanda tangan, lalu buka pesan aslinya — cukup dengan seed yang sama.</p>
+
+      <label>Gambar stego (hasil dari langkah A, atau unggah dari sumber lain)</label>
+      <input type="file" id="stegoImageInput" accept="image/*">
+      <img id="stegoInputPreview" class="thumb" style="display:none">
+
+      <label>Seed steganografi (harus sama dengan saat menyisip)</label>
+      <input type="number" id="seedInputExtract" value="123456">
+
+      <button id="btnDecrypt" disabled>🔓 Ekstrak &amp; Dekripsi</button>
+      <p class="note">Tombol aktif otomatis setelah proses A selesai pada sesi ini, atau setelah Anda memilih file gambar stego sendiri (dari mana pun asalnya).</p>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result" id="resultBox" style="display:none">
+      <h2>Hasil Dekripsi <span id="sigBadge"></span></h2>
+      <div class="msg" id="resultMsg"></div>
+    </div>
+
+    <!-- LOG -->
+    <div class="log" id="log">Menunggu aksi… klik "Enkripsi &amp; Sisipkan" untuk memulai.</div>
+
+  </div>
+</div>
+
+<footer>AES-256-GCM · ECDH · RSA-OAEP-2048 · ECDSA P-256 · SHA-256 · LSB Termodifikasi — dijalankan 100% di sisi klien</footer>
+
+<script>
+const logEl = document.getElementById('log');
+function log(msg, cls){
+  const line = document.createElement('div');
+  if(cls) line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog(){ logEl.innerHTML = ''; }
+
+// ---------- util: seeded PRNG (mulberry32) untuk pengacakan posisi LSB ----------
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seededShuffleIndices(n, seed){
+  const rnd = mulberry32(seed);
+  const idx = new Uint32Array(n);
+  for(let i=0;i<n;i++) idx[i]=i;
+  for(let i=n-1;i>0;i--){
+    const j = Math.floor(rnd()*(i+1));
+    const tmp = idx[i]; idx[i]=idx[j]; idx[j]=tmp;
+  }
+  return idx;
+}
+
+function bytesToBits(bytes){
+  const bits = new Uint8Array(bytes.length*8);
+  for(let i=0;i<bytes.length;i++){
+    for(let b=0;b<8;b++){
+      bits[i*8+b] = (bytes[i] >> (7-b)) & 1;
+    }
+  }
+  return bits;
+}
+function bitsToBytes(bits){
+  const out = new Uint8Array(bits.length/8);
+  for(let i=0;i<out.length;i++){
+    let byte=0;
+    for(let b=0;b<8;b++) byte = (byte<<1) | bits[i*8+b];
+    out[i]=byte;
+  }
+  return out;
+}
+
+// ---------- LSB modifikasi: embed & extract di atas ImageData ----------
+function lsbEmbed(imageData, payloadBytes, seed){
+  const header = new Uint8Array(4);
+  const len = payloadBytes.length;
+  header[0]=(len>>>24)&0xff; header[1]=(len>>>16)&0xff; header[2]=(len>>>8)&0xff; header[3]=len&0xff;
+  const full = new Uint8Array(header.length + payloadBytes.length);
+  full.set(header,0); full.set(payloadBytes, header.length);
+  const bits = bytesToBits(full);
+
+  const data = imageData.data; // RGBA
+  // pakai hanya channel R,G,B (skip alpha) supaya tidak merusak transparansi
+  const usableIndices = [];
+  for(let i=0;i<data.length;i+=4){
+    usableIndices.push(i, i+1, i+2);
+  }
+  if(bits.length > usableIndices.length) throw new Error('Gambar terlalu kecil untuk menampung data. Gunakan gambar cover berukuran lebih besar.');
+
+  const order = seededShuffleIndices(usableIndices.length, seed);
+  for(let i=0;i<bits.length;i++){
+    const channelIdx = usableIndices[order[i]];
+    data[channelIdx] = (data[channelIdx] & 0xFE) | bits[i];
+  }
+  return imageData;
+}
+
+function lsbExtract(imageData, seed){
+  const data = imageData.data;
+  const usableIndices = [];
+  for(let i=0;i<data.length;i+=4){
+    usableIndices.push(i, i+1, i+2);
+  }
+  const order = seededShuffleIndices(usableIndices.length, seed);
+
+  const headerBits = new Uint8Array(32);
+  for(let i=0;i<32;i++) headerBits[i] = data[usableIndices[order[i]]] & 1;
+  const headerBytes = bitsToBytes(headerBits);
+  const payloadLen = (headerBytes[0]<<24)|(headerBytes[1]<<16)|(headerBytes[2]<<8)|headerBytes[3];
+
+  if(!(payloadLen > 0 && payloadLen < usableIndices.length)){
+    throw new Error('Tidak ditemukan data valid pada seed ini. Pastikan seed sama persis dengan saat menyisip.');
+  }
+
+  const totalBits = 32 + payloadLen*8;
+  const allBits = new Uint8Array(totalBits);
+  for(let i=0;i<totalBits;i++) allBits[i] = data[usableIndices[order[i]]] & 1;
+  const allBytes = bitsToBytes(allBits);
+  return allBytes.slice(4);
+}
+
+// ---------- helpers ----------
+function b64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function unb64(str){ return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
+function toHex(buf){ return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function textEnc(s){ return new TextEncoder().encode(s); }
+function textDec(b){ return new TextDecoder().decode(b); }
+
+function loadImageToCanvas(file){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e=>{
+      img.onload = ()=>{
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0);
+        resolve({canvas, ctx, width:img.width, height:img.height, dataUrl:e.target.result});
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadDataUrlToCanvas(dataUrl){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      canvas.width=img.width; canvas.height=img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0);
+      resolve({canvas, ctx, width:img.width, height:img.height});
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+// previews
+document.getElementById('coverImage').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  const p = document.getElementById('coverPreview');
+  p.src = url; p.style.display='block';
+});
+document.getElementById('stegoImageInput').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  const p = document.getElementById('stegoInputPreview');
+  p.src = url; p.style.display='block';
+  document.getElementById('btnDecrypt').disabled = false;
+});
+
+// session state: hanya dipakai sebagai kenyamanan (auto-load gambar hasil panel A)
+// TIDAK lagi menyimpan kunci privat/publik terpisah — semua kunci yang dibutuhkan
+// penerima sekarang ikut disisipkan ke dalam gambar itu sendiri.
+let session = null;
+
+// ================= PANEL A: ENCRYPT + EMBED =================
+document.getElementById('btnEncrypt').addEventListener('click', async ()=>{
+  clearLog();
+  const btn = document.getElementById('btnEncrypt');
+  btn.disabled = true;
+  try{
+    const plaintext = document.getElementById('plaintext').value;
+    const fileInput = document.getElementById('coverImage');
+    const seed = parseInt(document.getElementById('seedInput').value) || 123456;
+    if(!fileInput.files[0]){ log('❌ Pilih gambar cover terlebih dahulu.','err'); btn.disabled=false; return; }
+    if(!plaintext){ log('❌ Pesan tidak boleh kosong.','err'); btn.disabled=false; return; }
+
+    log('=== PENGIRIM: memulai proses pengamanan pesan ===','tag');
+
+    // 1. ECDH (padanan Diffie-Hellman) — sepakati shared secret antara pengirim & penerima
+    log('[1] Membangkitkan pasangan kunci ECDH (Diffie-Hellman) untuk pengirim & penerima...');
+    const ecdhSender = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, true, ['deriveBits']);
+    const ecdhReceiver = await crypto.subtle.generateKey({name:'ECDH', namedCurve:'P-256'}, true, ['deriveBits']);
+    const sharedSecretBits = await crypto.subtle.deriveBits(
+      {name:'ECDH', public: ecdhReceiver.publicKey}, ecdhSender.privateKey, 256
+    );
+    log('    ✓ Shared secret ECDH disepakati ('+sharedSecretBits.byteLength+' byte).','ok');
+
+    // 2. SHA-256 sebagai KDF -> kunci AES
+    log('[2] Menurunkan kunci AES-256 dari shared secret memakai SHA-256 (KDF)...');
+    const aesKeyRaw = await crypto.subtle.digest('SHA-256', sharedSecretBits);
+    log('    ✓ Kunci AES: '+toHex(aesKeyRaw).slice(0,24)+'…','ok');
+    const aesKey = await crypto.subtle.importKey('raw', aesKeyRaw, {name:'AES-GCM'}, true, ['encrypt','decrypt']);
+
+    // 3. AES-256-GCM: enkripsi pesan
+    log('[3] Mengenkripsi pesan dengan AES-256-GCM...');
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, textEnc(plaintext));
+    log('    ✓ Ciphertext: '+toHex(ciphertext).slice(0,40)+'…','ok');
+
+    // 4. RSA-OAEP: bungkus kunci AES memakai kunci publik penerima
+    log('[4] Membangkitkan pasangan kunci RSA-2048 penerima & membungkus kunci AES (RSA-OAEP)...');
+    const rsaPair = await crypto.subtle.generateKey(
+      {name:'RSA-OAEP', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256'},
+      true, ['encrypt','decrypt']
+    );
+    const encAesKey = await crypto.subtle.encrypt({name:'RSA-OAEP'}, rsaPair.publicKey, aesKeyRaw);
+    log('    ✓ Kunci AES terbungkus RSA ('+encAesKey.byteLength+' byte).','ok');
+
+    // 5. ECDSA (padanan DSA/Schnorr): tanda tangani ciphertext
+    log('[5] Membangkitkan pasangan kunci ECDSA & menandatangani ciphertext...');
+    const dsaPair = await crypto.subtle.generateKey({name:'ECDSA', namedCurve:'P-256'}, true, ['sign','verify']);
+    const signature = await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, dsaPair.privateKey, ciphertext);
+    log('    ✓ Tanda tangan digital dibuat ('+signature.byteLength+' byte).','ok');
+
+    // 5b. Ekspor kunci privat RSA (buka bungkus kunci AES) & kunci publik ECDSA (verifikasi)
+    //     supaya ikut disisipkan ke gambar -> gambar jadi mandiri, penerima manapun
+    //     yang tahu seed bisa membuka pesan tanpa perlu sesi browser yang sama.
+    log('    Mengekspor kunci privat RSA & kunci publik ECDSA (JWK) untuk disisipkan bersama paket...');
+    const rsaPrivateJwk = await crypto.subtle.exportKey('jwk', rsaPair.privateKey);
+    const dsaPublicJwk = await crypto.subtle.exportKey('jwk', dsaPair.publicKey);
+
+    // 6. Susun paket JSON lalu sisipkan ke gambar dengan LSB termodifikasi
+    log('[6] Menyusun paket data (ciphertext + kunci) & menyisipkan ke gambar (LSB posisi teracak, seed='+seed+')...');
+    const paket = {
+      iv: b64(iv),
+      ciphertext: b64(ciphertext),
+      encAesKey: b64(encAesKey),
+      signature: b64(signature),
+      rsaPrivateKey: rsaPrivateJwk,
+      dsaPublicKey: dsaPublicJwk
+    };
+    const payloadBytes = textEnc(JSON.stringify(paket));
+
+    const {canvas, ctx, width, height} = await loadImageToCanvas(fileInput.files[0]);
+    const imageData = ctx.getImageData(0,0,width,height);
+    const embedded = lsbEmbed(imageData, payloadBytes, seed);
+    ctx.putImageData(embedded,0,0);
+    const stegoDataUrl = canvas.toDataURL('image/png');
+    log('    ✓ Paket ('+payloadBytes.length+' byte) berhasil disisipkan ke gambar.','ok');
+
+    document.getElementById('stegoPreview').src = stegoDataUrl;
+    document.getElementById('stegoResultBox').style.display = 'block';
+    const dl = document.getElementById('downloadLink');
+    dl.href = stegoDataUrl;
+
+    // simpan hanya untuk kenyamanan (auto-load di panel B tanpa perlu unduh+unggah manual)
+    session = { seed, stegoDataUrl };
+    document.getElementById('btnDecrypt').disabled = false;
+
+    log('=== SELESAI: gambar stego bersifat mandiri — bisa dibuka di perangkat/sesi lain asal seed sama ===','tag');
+  }catch(err){
+    log('❌ Error: '+err.message,'err');
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+// ================= PANEL B: EXTRACT + DECRYPT =================
+document.getElementById('btnDecrypt').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btnDecrypt');
+  btn.disabled = true;
+  try{
+    log('\n=== PENERIMA: mulai membuka & memverifikasi pesan ===','tag');
+    const seed = parseInt(document.getElementById('seedInputExtract').value) || 123456;
+
+    const manualFile = document.getElementById('stegoImageInput').files[0];
+    let canvasInfo;
+    if(manualFile){
+      log('[1] Memuat gambar stego yang diunggah pengguna (bisa dari sumber luar)...');
+      canvasInfo = await loadImageToCanvas(manualFile);
+    } else if(session){
+      log('[1] Memuat gambar stego dari hasil Panel A (sesi ini)...');
+      canvasInfo = await loadDataUrlToCanvas(session.stegoDataUrl);
+    } else {
+      log('❌ Belum ada gambar stego. Jalankan Panel A dahulu atau unggah gambar stego.','err');
+      btn.disabled=false; return;
+    }
+
+    const imageData = canvasInfo.ctx.getImageData(0,0,canvasInfo.width,canvasInfo.height);
+    log('[2] Mengekstrak paket data dari gambar (LSB, seed='+seed+')...');
+    const payloadBytes = lsbExtract(imageData, seed);
+    const paket = JSON.parse(textDec(payloadBytes));
+    log('    ✓ Paket berhasil diekstrak (ciphertext + kunci ikut ditemukan di gambar).','ok');
+
+    const iv = unb64(paket.iv);
+    const ciphertext = unb64(paket.ciphertext);
+    const encAesKey = unb64(paket.encAesKey);
+    const signature = unb64(paket.signature);
+
+    if(!paket.rsaPrivateKey || !paket.dsaPublicKey){
+      log('❌ Paket di gambar ini tidak berisi kunci (mungkin dibuat dengan versi lama). Buat ulang gambar stego dengan versi terbaru.','err');
+      btn.disabled=false; return;
+    }
+
+    log('[3] Mengimpor kunci privat RSA & kunci publik ECDSA dari dalam paket...');
+    const rsaPrivateKey = await crypto.subtle.importKey(
+      'jwk', paket.rsaPrivateKey, {name:'RSA-OAEP', hash:'SHA-256'}, true, ['decrypt']
+    );
+    const dsaPublicKey = await crypto.subtle.importKey(
+      'jwk', paket.dsaPublicKey, {name:'ECDSA', namedCurve:'P-256'}, true, ['verify']
+    );
+    log('    ✓ Kunci berhasil diimpor.','ok');
+
+    log('[4] Memverifikasi tanda tangan ECDSA (padanan DSA/Schnorr) pada ciphertext...');
+    const valid = await crypto.subtle.verify(
+      {name:'ECDSA', hash:'SHA-256'}, dsaPublicKey, signature, ciphertext
+    );
+    log('    Status tanda tangan: '+(valid?'VALID ✓':'TIDAK VALID ✗'), valid?'ok':'err');
+
+    log('[5] Membuka kunci AES dengan RSA privat penerima...');
+    const aesKeyRaw = await crypto.subtle.decrypt({name:'RSA-OAEP'}, rsaPrivateKey, encAesKey);
+    const aesKey = await crypto.subtle.importKey('raw', aesKeyRaw, {name:'AES-GCM'}, true, ['decrypt']);
+    log('    ✓ Kunci AES berhasil dibuka.','ok');
+
+    log('[6] Mendekripsi ciphertext dengan AES-256-GCM...');
+    const plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, aesKey, ciphertext);
+    const plaintext = textDec(plainBuf);
+    log('    ✓ Pesan berhasil didekripsi.','ok');
+    log('=== SELESAI ===','tag');
+
+    document.getElementById('resultBox').style.display='block';
+    document.getElementById('resultMsg').textContent = plaintext;
+    const badge = document.getElementById('sigBadge');
+    badge.textContent = valid ? 'TANDA TANGAN VALID' : 'TANDA TANGAN TIDAK VALID';
+    badge.className = 'badge ' + (valid?'valid':'invalid');
+
+  }catch(err){
+    log('❌ Error: '+err.message,'err');
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

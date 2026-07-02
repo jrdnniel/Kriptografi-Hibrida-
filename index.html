@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi SHA-256 Avalanche Effect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bit-box { width: 14px; height: 14px; border-radius: 2px; }
+        @media (max-width: 768px) {
+            .bit-box { width: 10px; height: 10px; }
+        }
+        /* Custom spacing untuk teks biner di dalam tabel agar lebih renggang dan rapi */
+        .binary-text { letter-spacing: 0.1em; }
+    </style>
+</head>
+<body class="bg-[#18181b] text-gray-200 font-sans p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        
+        <div class="bg-[#27272a] p-5 rounded-lg border border-gray-700 shadow-lg">
+            <div class="space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center gap-2">
+                    <label class="w-24 text-gray-400 font-medium text-sm">Input X</label>
+                    <input type="text" id="inputX" class="flex-1 bg-[#18181b] border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-blue-500" placeholder="Masukkan teks X..." value="b">
+                </div>
+                <div class="flex flex-col md:flex-row md:items-center gap-2">
+                    <label class="w-24 text-gray-400 font-medium text-sm">Input Y</label>
+                    <input type="text" id="inputY" class="flex-1 bg-[#18181b] border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-blue-500" placeholder="Masukkan teks Y...">
+                </div>
+                
+                <div class="flex gap-3 pt-2">
+                    <button id="btnHash" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors text-sm flex items-center gap-2">
+                        Hitung SHA-256
+                    </button>
+                    <button id="btnAutoFlip" class="bg-gray-700 hover:bg-gray-600 border border-gray-500 text-white font-medium py-2 px-4 rounded transition-colors text-sm flex items-center gap-2">
+                        Auto flip 1 bit dari X
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-[#27272a] p-5 rounded-lg border border-gray-700 shadow-lg">
+            <h2 class="text-white font-bold mb-4">Hash SHA-256</h2>
+            <div class="space-y-3">
+                <div>
+                    <div class="text-gray-400 text-xs mb-1">h(X) hex</div>
+                    <div id="hexX" class="font-mono text-blue-400 text-sm md:text-base break-all bg-[#18181b] p-2 rounded border border-gray-700 min-h-[40px]"></div>
+                </div>
+                <div>
+                    <div class="text-gray-400 text-xs mb-1">h(Y) hex</div>
+                    <div id="hexY" class="font-mono text-green-500 text-sm md:text-base break-all bg-[#18181b] p-2 rounded border border-gray-700 min-h-[40px]"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-[#27272a] p-5 rounded-lg border border-gray-700 text-center shadow-lg">
+                <div id="statBeda" class="text-3xl font-bold text-white mb-1">0</div>
+                <div class="text-gray-400 text-sm">bit berbeda</div>
+            </div>
+            <div class="bg-[#27272a] p-5 rounded-lg border border-gray-700 text-center shadow-lg">
+                <div id="statSama" class="text-3xl font-bold text-white mb-1">0</div>
+                <div class="text-gray-400 text-sm">bit sama</div>
+            </div>
+            <div class="bg-[#27272a] p-5 rounded-lg border border-gray-700 text-center shadow-lg">
+                <div id="statPersen" class="text-3xl font-bold text-white mb-1">0%</div>
+                <div class="text-gray-400 text-sm">% perbedaan</div>
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <div class="flex justify-between text-sm font-medium">
+                <span class="text-gray-300">Avalanche meter</span>
+                <span id="meterText" class="text-gray-300">0 / 256 bit</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-3 relative">
+                <div id="progressBar" class="bg-red-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                <div class="absolute top-0 left-1/2 h-full w-0.5 bg-white opacity-50 z-10"></div>
+            </div>
+            <div class="text-center text-xs text-gray-500">50% threshold = 128 bit</div>
+        </div>
+
+        <div id="alertBox" class="hidden p-3 rounded text-sm font-medium border text-center transition-all"></div>
+
+        <div class="space-y-4">
+            <h2 class="text-white font-bold border-b border-gray-700 pb-2">Visualisasi 256 bit (merah = berbeda)</h2>
+            <div class="space-y-2">
+                <div class="text-gray-400 text-xs">h(X) biner</div>
+                <div id="binTextX" class="font-mono text-xs md:text-sm text-gray-400 leading-relaxed break-all bg-[#18181b] p-3 rounded border border-gray-700"></div>
+            </div>
+            <div class="space-y-2">
+                <div class="text-gray-400 text-xs">h(Y) biner</div>
+                <div id="binTextY" class="font-mono text-xs md:text-sm text-gray-400 leading-relaxed break-all bg-[#18181b] p-3 rounded border border-gray-700"></div>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <h2 class="text-white font-bold border-b border-gray-700 pb-2">Peta perbedaan bit</h2>
+            <div id="bitGrid" class="flex flex-wrap gap-1 md:gap-[2px] bg-[#18181b] p-3 rounded border border-gray-700 justify-center"></div>
+            <div class="flex items-center gap-4 text-xs text-gray-400">
+                <div class="flex items-center gap-1"><div class="w-3 h-3 bg-[#3f3f46] rounded-sm"></div> Sama</div>
+                <div class="flex items-center gap-1"><div class="w-3 h-3 bg-red-500 rounded-sm"></div> Berbeda</div>
+            </div>
+        </div>
+
+        <div class="space-y-4 pt-4">
+            <h2 class="text-white font-bold border-b border-gray-700 pb-2">Tabel perbandingan bit (per 8 bit / 1 byte)</h2>
+            <div class="overflow-x-auto rounded border border-gray-700 shadow-lg">
+                <table class="w-full text-sm text-left text-gray-400">
+                    <thead class="text-xs text-gray-100 uppercase bg-[#27272a] border-b border-gray-700 font-bold">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 border-r border-gray-700 text-center w-24">Byte</th>
+                            <th scope="col" class="px-6 py-3 border-r border-gray-700 text-center">h(X) bits</th>
+                            <th scope="col" class="px-6 py-3 border-r border-gray-700 text-center">h(Y) bits</th>
+                            <th scope="col" class="px-6 py-3 text-center w-24">Beda</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="font-mono binary-text text-[13px]">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function hexToBinary256(hex) {
+            let bin = "";
+            for (let i = 0; i < hex.length; i++) {
+                bin += parseInt(hex[i], 16).toString(2).padStart(4, '0');
+            }
+            return bin;
+        }
+
+        function flipOneBit(text) {
+            if (!text) return "";
+            let chars = text.split('');
+            chars[0] = String.fromCharCode(chars[0].charCodeAt(0) ^ 1);
+            return chars.join('');
+        }
+
+        async function calculateAvalanche() {
+            const inputX = document.getElementById('inputX').value;
+            const inputY = document.getElementById('inputY').value;
+
+            if (inputX === '' || inputY === '') {
+                alert("Input X dan Y tidak boleh kosong!");
+                return;
+            }
+
+            const hexX = await sha256(inputX);
+            const hexY = await sha256(inputY);
+            const binX = hexToBinary256(hexX);
+            const binY = hexToBinary256(hexY);
+
+            document.getElementById('hexX').textContent = hexX;
+            document.getElementById('hexY').textContent = hexY;
+
+            let diffCount = 0;
+            let binHtmlX = "";
+            let binHtmlY = "";
+            let gridHtml = "";
+
+            for (let i = 0; i < 256; i++) {
+                let spacer = (i > 0 && i % 8 === 0) ? " " : "";
+                
+                if (binX[i] !== binY[i]) {
+                    diffCount++;
+                    binHtmlX += spacer + `<span class="text-red-500 font-bold">${binX[i]}</span>`;
+                    binHtmlY += spacer + `<span class="text-red-500 font-bold">${binY[i]}</span>`;
+                    gridHtml += `<div class="bit-box bg-red-500" title="Bit ${i+1}: Berbeda"></div>`;
+                } else {
+                    binHtmlX += spacer + `<span>${binX[i]}</span>`;
+                    binHtmlY += spacer + `<span>${binY[i]}</span>`;
+                    gridHtml += `<div class="bit-box bg-[#3f3f46]" title="Bit ${i+1}: Sama"></div>`;
+                }
+            }
+
+            // Update Statistik & Progress
+            const percentDiff = ((diffCount / 256) * 100).toFixed(1);
+            document.getElementById('statBeda').textContent = diffCount;
+            document.getElementById('statSama').textContent = 256 - diffCount;
+            document.getElementById('statPersen').textContent = percentDiff + "%";
+            document.getElementById('progressBar').style.width = percentDiff + "%";
+            document.getElementById('meterText').textContent = `${diffCount} / 256 bit`;
+
+            // Alert Box
+            const alertBox = document.getElementById('alertBox');
+            alertBox.classList.remove('hidden', 'bg-red-900/40', 'text-red-400', 'border-red-800', 'bg-green-900/40', 'text-green-400', 'border-green-800');
+            if (diffCount < 128) {
+                alertBox.classList.add('bg-red-900/40', 'text-red-400', 'border-red-800');
+                alertBox.textContent = `Belum memenuhi threshold. Hanya ${diffCount} bit berbeda (${percentDiff}%). Coba input yang lebih berbeda.`;
+            } else {
+                alertBox.classList.add('bg-green-900/40', 'text-green-400', 'border-green-800');
+                alertBox.textContent = `Avalanche Effect berjalan baik! Terdeteksi ${diffCount} bit berbeda (${percentDiff}%). Threshold terpenuhi.`;
+            }
+
+            document.getElementById('binTextX').innerHTML = binHtmlX;
+            document.getElementById('binTextY').innerHTML = binHtmlY;
+            document.getElementById('bitGrid').innerHTML = gridHtml;
+
+            // --- PEMBUATAN TABEL PERBANDINGAN PER BYTE (8-BIT) ---
+            let tableHtml = "";
+            // Loop 32 kali karena 256 bit / 8 = 32 byte
+            for (let byteIndex = 0; byteIndex < 32; byteIndex++) {
+                let startPos = byteIndex * 8;
+                let endPos = startPos + 8;
+                
+                // Ambil string 8 bit untuk baris saat ini
+                let byteX = binX.substring(startPos, endPos);
+                let byteY = binY.substring(startPos, endPos);
+
+                let diffInByte = 0;
+                let spanX = "";
+                let spanY = "";
+
+                // Bandingkan bit per bit dalam rentang 8 bit ini
+                for (let b = 0; b < 8; b++) {
+                    if (byteX[b] !== byteY[b]) {
+                        diffInByte++;
+                        // Pewarnaan berbeda untuk X (Merah) dan Y (Hijau) jika terjadi Avalanche
+                        spanX += `<span class="text-red-500 font-bold">${byteX[b]}</span>`;
+                        spanY += `<span class="text-green-500 font-bold">${byteY[b]}</span>`;
+                    } else {
+                        // Pewarnaan redup jika bitnya kembar
+                        spanX += `<span class="text-gray-500">${byteX[b]}</span>`;
+                        spanY += `<span class="text-gray-500">${byteY[b]}</span>`;
+                    }
+                }
+
+                // Warna kolom 'Beda': Merah jika ada mutasi, redup jika 0 mutasi
+                let diffColorClass = diffInByte > 0 ? "text-red-500 font-bold" : "text-gray-600";
+
+                tableHtml += `
+                    <tr class="bg-[#18181b] border-b border-gray-800 hover:bg-[#27272a] transition-colors">
+                        <td class="px-6 py-2 border-r border-gray-800 text-gray-400 text-center font-sans font-medium">B${byteIndex + 1}</td>
+                        <td class="px-6 py-2 border-r border-gray-800 text-center">${spanX}</td>
+                        <td class="px-6 py-2 border-r border-gray-800 text-center">${spanY}</td>
+                        <td class="px-6 py-2 text-center ${diffColorClass} font-sans">${diffInByte}</td>
+                    </tr>
+                `;
+            }
+            document.getElementById('tableBody').innerHTML = tableHtml;
+        }
+
+        document.getElementById('btnAutoFlip').addEventListener('click', () => {
+            const inputX = document.getElementById('inputX').value;
+            if(!inputX) {
+                alert("Isi Input X terlebih dahulu.");
+                return;
+            }
+            document.getElementById('inputY').value = flipOneBit(inputX);
+            calculateAvalanche();
+        });
+
+        document.getElementById('btnHash').addEventListener('click', calculateAvalanche);
+
+        window.onload = () => {
+            document.getElementById('btnAutoFlip').click();
+        };
+    </script>
+</body>
+</html>
